@@ -1,0 +1,6 @@
+{
+  "mortar": {"easting": 0.0, "northing": 0.0, "elevation": 0.0},
+  "fo": {"easting": 0.0, "northing": 0.0, "elevation": 0.0},
+  "wind": {"speed": 0.0, "direction": 0.0},
+  "settings": {"ammo": "M821 HE", "weapon": "M252 Mortar"}
+}
