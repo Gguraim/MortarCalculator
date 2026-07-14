@@ -1,0 +1,42 @@
+{
+  "weapon": "M252 Mortar",
+  "ammo": "M821 HE",
+  "units": {"range": "m", "mil": "NATO mil", "time": "s", "dispersion": "m"},
+  "charges": [
+    {"charge": 0, "points": [
+      {"range": 100, "mil": 1500, "time": 5.2, "elevation_correction": 0.0, "dispersion": 8.0},
+      {"range": 200, "mil": 1425, "time": 7.1, "elevation_correction": 0.0, "dispersion": 9.0},
+      {"range": 300, "mil": 1350, "time": 8.8, "elevation_correction": 0.0, "dispersion": 10.0},
+      {"range": 400, "mil": 1275, "time": 10.2, "elevation_correction": 0.0, "dispersion": 12.0},
+      {"range": 500, "mil": 1200, "time": 11.4, "elevation_correction": 0.0, "dispersion": 14.0}
+    ]},
+    {"charge": 1, "points": [
+      {"range": 200, "mil": 1500, "time": 7.5, "elevation_correction": 0.0, "dispersion": 10.0},
+      {"range": 400, "mil": 1410, "time": 10.4, "elevation_correction": 0.0, "dispersion": 12.0},
+      {"range": 600, "mil": 1320, "time": 12.8, "elevation_correction": 0.0, "dispersion": 15.0},
+      {"range": 800, "mil": 1230, "time": 14.8, "elevation_correction": 0.0, "dispersion": 18.0},
+      {"range": 1000, "mil": 1140, "time": 16.4, "elevation_correction": 0.0, "dispersion": 22.0}
+    ]},
+    {"charge": 2, "points": [
+      {"range": 400, "mil": 1500, "time": 10.9, "elevation_correction": 0.0, "dispersion": 14.0},
+      {"range": 700, "mil": 1400, "time": 14.2, "elevation_correction": 0.0, "dispersion": 18.0},
+      {"range": 1000, "mil": 1300, "time": 16.8, "elevation_correction": 0.0, "dispersion": 23.0},
+      {"range": 1300, "mil": 1200, "time": 19.0, "elevation_correction": 0.0, "dispersion": 29.0},
+      {"range": 1600, "mil": 1100, "time": 20.8, "elevation_correction": 0.0, "dispersion": 36.0}
+    ]},
+    {"charge": 3, "points": [
+      {"range": 700, "mil": 1500, "time": 14.8, "elevation_correction": 0.0, "dispersion": 22.0},
+      {"range": 1100, "mil": 1400, "time": 18.2, "elevation_correction": 0.0, "dispersion": 29.0},
+      {"range": 1500, "mil": 1300, "time": 20.8, "elevation_correction": 0.0, "dispersion": 37.0},
+      {"range": 1900, "mil": 1200, "time": 23.0, "elevation_correction": 0.0, "dispersion": 46.0},
+      {"range": 2300, "mil": 1100, "time": 24.9, "elevation_correction": 0.0, "dispersion": 56.0}
+    ]},
+    {"charge": 4, "points": [
+      {"range": 1000, "mil": 1500, "time": 18.7, "elevation_correction": 0.0, "dispersion": 35.0},
+      {"range": 1500, "mil": 1410, "time": 22.4, "elevation_correction": 0.0, "dispersion": 45.0},
+      {"range": 2000, "mil": 1320, "time": 25.1, "elevation_correction": 0.0, "dispersion": 58.0},
+      {"range": 2500, "mil": 1230, "time": 27.3, "elevation_correction": 0.0, "dispersion": 72.0},
+      {"range": 3000, "mil": 1140, "time": 29.2, "elevation_correction": 0.0, "dispersion": 88.0}
+    ]}
+  ]
+}
