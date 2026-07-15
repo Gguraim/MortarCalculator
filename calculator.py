@@ -6,12 +6,22 @@ import json
 import math
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable, TypeVar
 
 BALLISTICS_PATH = Path("ballistics.json")
 MILS_PER_CIRCLE = 6400.0
 DEGREES_PER_CIRCLE = 360.0
 MILS_PER_RADIAN = MILS_PER_CIRCLE / (2.0 * math.pi)
 WIND_RESPONSE_HALF_TIME = 4.0
+T = TypeVar("T")
+
+
+class RestartRequest(Exception):
+    """입력을 처음부터 다시 시작하기 위한 내부 신호."""
+
+
+class QuitRequest(Exception):
+    """프로그램을 즉시 종료하기 위한 내부 신호."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,26 +139,48 @@ def parse_grid(value: str) -> Grid:
         easting, northing = text.split(",", maxsplit=1)
         return Grid(float(easting), float(northing))
     if len(text) != 10 or not text.isdigit():
-        raise ValueError("격자는 10자리 숫자 또는 '동,북' 형식이어야 합니다.")
+        raise ValueError
     return Grid(float(text[:5]), float(text[5:]))
 
 
-def prompt_grid(label: str) -> Grid:
-    """사용자에게 격자 좌표를 입력받습니다."""
-    while True:
-        try:
-            return parse_grid(input(f"{label}\n> "))
-        except ValueError as exc:
-            print(f"잘못된 입력입니다: {exc}")
+def read_controlled_input(label: str) -> str:
+    """R/Q 제어 입력을 공통 처리하고 원문 입력값을 반환합니다."""
+    value = input(f"{label}\n> ").strip()
+    command = value.upper()
+    if command == "R":
+        raise RestartRequest
+    if command == "Q":
+        raise QuitRequest
+    return value
 
 
-def prompt_float(label: str) -> float:
-    """사용자에게 숫자 값을 입력받습니다."""
+def input_value(label: str, parser: Callable[[str], T]) -> T:
+    """공통 검증 루프를 통해 값을 입력받습니다."""
     while True:
         try:
-            return float(input(f"{label}\n> ").strip())
-        except ValueError:
-            print("잘못된 입력입니다. 숫자를 입력하세요.")
+            return parser(read_controlled_input(label))
+        except RestartRequest:
+            raise
+        except QuitRequest:
+            raise
+        except (TypeError, ValueError):
+            print("잘못된 입력입니다.")
+            print("다시 입력하세요.")
+
+
+def input_grid(label: str) -> Grid:
+    """R/Q와 검증을 지원하는 격자 입력 함수입니다."""
+    return input_value(label, parse_grid)
+
+
+def input_float(label: str) -> float:
+    """R/Q와 검증을 지원하는 실수 입력 함수입니다."""
+    return input_value(label, float)
+
+
+def input_number(label: str) -> int:
+    """R/Q와 검증을 지원하는 정수 입력 함수입니다."""
+    return input_value(label, int)
 
 
 def distance_between(mortar: Grid, target: Grid) -> float:
@@ -282,33 +314,6 @@ def recommend_solutions(
     return solutions
 
 
-def apply_fire_correction(
-    target: Grid,
-    azimuth: float,
-    correction: str,
-) -> Grid:
-    """LEFT/RIGHT/ADD/DROP 사격 수정을 목표 좌표에 적용합니다."""
-    parts = correction.strip().upper().split()
-    if len(parts) != 2 or parts[0] not in {"LEFT", "RIGHT", "ADD", "DROP"}:
-        raise ValueError("LEFT 20, RIGHT 10, ADD 50, DROP 30 형식으로 입력하세요.")
-    amount = float(parts[1])
-    forward = math.radians(azimuth)
-    right = math.radians(azimuth + 90.0)
-    if parts[0] == "ADD":
-        angle, distance = forward, amount
-    elif parts[0] == "DROP":
-        angle, distance = forward, -amount
-    elif parts[0] == "RIGHT":
-        angle, distance = right, amount
-    else:
-        angle, distance = right, -amount
-    return Grid(
-        easting=target.easting + math.sin(angle) * distance,
-        northing=target.northing + math.cos(angle) * distance,
-        elevation=target.elevation,
-    )
-
-
 def print_summary(
     mortar: Grid,
     target: Grid,
@@ -387,27 +392,119 @@ def calculate_and_display(
     return solutions
 
 
+@dataclass(frozen=True, slots=True)
+class InputState:
+    """현재 사격 계산 입력값."""
+
+    mortar: Grid
+    target: Grid
+    wind_direction: float
+    wind_speed: float
+
+
+def input_mortar() -> Grid:
+    """박격포 위치와 고도를 입력받습니다."""
+    grid = input_grid("박격포 위치")
+    elevation = input_float("박격포 고도")
+    return Grid(grid.easting, grid.northing, elevation)
+
+
+def input_target() -> Grid:
+    """목표 위치와 고도를 입력받습니다."""
+    grid = input_grid("목표 위치")
+    elevation = input_float("목표 고도")
+    return Grid(grid.easting, grid.northing, elevation)
+
+
+def input_wind() -> tuple[float, float]:
+    """풍향과 풍속을 입력받습니다."""
+    direction = input_float("풍향") % DEGREES_PER_CIRCLE
+    speed = input_float("풍속")
+    return direction, speed
+
+
+def input_all() -> InputState:
+    """전체 입력 화면을 순서대로 처리합니다."""
+    print("\n입력 화면")
+    print("R: 전체 다시 입력 / Q: 종료")
+    mortar = input_mortar()
+    target = input_target()
+    wind_direction, wind_speed = input_wind()
+    return InputState(mortar, target, wind_direction, wind_speed)
+
+
+def print_menu() -> str:
+    """계산 후 주 메뉴를 표시하고 선택값을 반환합니다."""
+    print("\n" + "=" * 40)
+    print("[R] 전체 다시 입력")
+    print("[T] 목표 위치만 변경")
+    print("[W] 풍향/풍속만 변경")
+    print("[M] 박격포 위치만 변경")
+    print("[Q] 종료")
+    print("=" * 40)
+    return input("선택 : ").strip().upper()
+
+
+def handle_menu_choice(state: InputState, choice: str) -> InputState | None:
+    """주 메뉴 선택에 따라 필요한 입력만 갱신합니다."""
+    if choice == "R":
+        print("입력을 처음부터 다시 시작합니다.")
+        raise RestartRequest
+    if choice == "T":
+        return InputState(
+            state.mortar,
+            input_target(),
+            state.wind_direction,
+            state.wind_speed,
+        )
+    if choice == "W":
+        wind_direction, wind_speed = input_wind()
+        return InputState(state.mortar, state.target, wind_direction, wind_speed)
+    if choice == "M":
+        return InputState(
+            input_mortar(),
+            state.target,
+            state.wind_direction,
+            state.wind_speed,
+        )
+    if choice == "Q":
+        raise QuitRequest
+    raise ValueError
+
+
 def main() -> None:
     """대화형 박격포 계산기를 실행합니다."""
     tables = load_ballistics()
     print("Arma Reforger M252 / M821 박격포 계산기")
-    mortar_grid = prompt_grid("박격포 격자")
-    target_grid = prompt_grid("목표 격자")
-    mortar = Grid(mortar_grid.easting, mortar_grid.northing, prompt_float("박격포 고도"))
-    target = Grid(target_grid.easting, target_grid.northing, prompt_float("목표 고도"))
-    wind_direction = prompt_float("풍향") % DEGREES_PER_CIRCLE
-    wind_speed = prompt_float("풍속")
+    state: InputState | None = None
     while True:
-        calculate_and_display(tables, mortar, target, wind_direction, wind_speed)
-        correction = input("사격 수정(LEFT/RIGHT/ADD/DROP, 종료는 Enter)\n> ").strip()
-        if not correction:
-            print("종료")
-            return
         try:
-            azimuth = azimuth_degrees(mortar, target)
-            target = apply_fire_correction(target, azimuth, correction)
-        except ValueError as exc:
-            print(f"잘못된 입력입니다: {exc}")
+            if state is None:
+                state = input_all()
+            calculate_and_display(
+                tables,
+                state.mortar,
+                state.target,
+                state.wind_direction,
+                state.wind_speed,
+            )
+            while True:
+                try:
+                    choice = print_menu()
+                    state = handle_menu_choice(state, choice)
+                    break
+                except ValueError:
+                    print("잘못된 입력입니다.")
+                    print("다시 입력하세요.")
+        except RestartRequest:
+            state = None
+            print("입력을 처음부터 다시 시작합니다.")
+        except QuitRequest:
+            print("프로그램을 종료합니다.")
+            return
+        except EOFError:
+            print("프로그램을 종료합니다.")
+            return
 
 
 if __name__ == "__main__":
